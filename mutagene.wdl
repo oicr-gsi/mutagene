@@ -41,17 +41,19 @@ workflow mutagene {
 task signature {
 
   input {
-  	File vcfFile
+  	File inputFile
   	String outputFileNamePrefix
-    String reference_genome = "GRCh38"
-  	String modules = "sigpross/0.0.0.27 sigprofilerextractor/1.1 sigprofilematrixgenerator/1.1"
+    String fileType
+    String reference_genome = "hg38"
+  	String modules = "mutagene/0.9.1.0"
 	  Int jobMemory = 8
 	  Int threads = 4
   	Int timeout = 1
   }
 
   parameter_meta {
-  	vcfFile: "JSON result file from bamQCMetrics"
+  	inputFile: "WGS VCF or MAFfile"
+    fileType: "Denote if input is VCF or MAF file"
   	outputFileNamePrefix: "Prefix for output file"
   	reference_genome: "the genome version used for variant calling"
     modules: "required environment modules"
@@ -66,39 +68,19 @@ task signature {
   	cpu:     "~{threads}"
   	timeout: "~{timeout}"
   }
-
-  command <<<
-      python3 <<CODE
-      from SigProfilerExtractor import sigpro as sig
-      from sigproSS import spss
-      from os.path import dirname, isdir, basename
-      import os
-      import shutil
-      import gzip
-      #create output directory
-      os.mkdir("~{outputFileNamePrefix}")
-      #copy vcf file into directory
-      with gzip.open("~{vcfFile}", 'rt') as old_file, open("~{outputFileNamePrefix}" + "/" + basename("~{vcfFile}"[:-3]), 'w') as new_file:
-          new_file.write(old_file.read())
-      # run signature extractor
-      spss.single_sample("~{outputFileNamePrefix}", "results", ref="~{reference_genome}", exome=False)
-      shutil.move("results" + "/" + "decomposition profile.csv", "results" + "/" + "decompositionprofile.csv")
-      CODE
+      python3 -m mutagene profile -g $MUTAGENE_ROOT/ref/"~{reference_genome}" -i "~{inputFile}" -f "~{fileType}" > "~{outputFileNamePrefix}".profile.tsv
+      python3 -m mutagene signature -g $MUTAGENE_ROOT/ref/"~{reference_genome}" -i "~{inputFile}" -f "~{fileType}" > "~{outputFileNamePrefix}".signatures.tsv
   >>>
 
   output {
-      File decompositionprofile = "results/decomposition_profile.csv"
-      File mutationprobabilities = "results/Mutation_Probabilities.txt"
-      File sigactivities = "results/Sig_activities.txt"
-      File signatures = "results/Signatures.txt"
+      File decompositionprofile = "~{outputFileNamePrefix}.decomposition_profile.txt"
+      File mutationprobabilities = "~{outputFileNamePrefix}.Mutation_Probabilities.txt"
   }
 
   meta {
     output_meta: {
         decompositionprofile: "summary of global nmf sigatures",
         mutationprobabilities: "table summarizing probability of each mutation by signature",
-        sigactivities: "number of mutations attributed to each signature",
-        signatures: "attribution of each mutation to each signature"
       }
   }
 }
