@@ -1,0 +1,4 @@
+{
+  "sigprofiler.outputFileNamePrefix": "PANX_1219_Lv_M_WG_100-009-005_LCM3",
+  "sigprofiler.vcfFile": "/.mounts/labs/gsi/testdata/sigprofiler/1.0/input_data/PANX_1219_Lv_M_WG_100-009-005_LCM3.filter.deduped.realigned.recalibrated.mutect2.filtered.vcf.gz"
+}
